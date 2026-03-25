@@ -1,0 +1,61 @@
+# XenSQL Schema Retrieval — Ranking Weights Configuration
+#
+# Used by RankingEngine to compute composite relevance scores.
+# No RBAC/security concerns — XenSQL operates on pre-filtered schema from QueryVault.
+
+scoring:
+  semantic_similarity: 0.50
+  domain_affinity: 0.20
+  intent_match: 0.15
+  join_connectivity: 0.10
+  multi_strategy_bonus: 0.05
+
+retrieval:
+  max_tables: 10
+  semantic_top_k: 25
+  semantic_min_threshold: 0.30
+  keyword_exact_table_boost: 0.95
+  keyword_exact_column_boost: 0.80
+  keyword_domain_boost: 0.60
+  keyword_domain_max_additions: 3
+  fk_depth_1_boost: 0.70
+  fk_depth_2_boost: 0.50
+  fk_depth_3_boost: 0.30
+  multi_strategy_bonus_value: 0.08
+
+domain_affinity:
+  # Universal join anchors get a boost regardless of domain
+  universal_anchors:
+    - patients
+    - encounters
+    - providers
+  universal_anchor_boost: 0.15
+
+intent_scoring:
+  DATA_LOOKUP:
+    column_match_boost: 0.20
+    description_match_boost: 0.10
+  AGGREGATION:
+    fact_table_boost: 0.35
+    dimension_table_boost: 0.10
+  COMPARISON:
+    sibling_table_boost: 0.10
+  TREND:
+    time_column_boost: 0.15
+  JOIN_QUERY:
+    bridge_table_boost: 0.20
+    fk_connectivity_boost: 0.15
+  EXISTENCE_CHECK:
+    primary_table_boost: 0.10
+  DEFINITION:
+    column_match_boost: 0.15
+
+cache:
+  retrieval_ttl_seconds: 900    # 15 minutes
+  embedding_cache_ttl: 86400    # 24 hours
+  fk_graph_ttl: 600             # 10 minutes
+
+token_budget:
+  max_tokens: 4096
+  per_table_estimate: 300
+  description_max_tokens: 100

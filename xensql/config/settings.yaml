@@ -1,0 +1,75 @@
+# XenSQL - NL-to-SQL Pipeline Engine
+# Default settings (overridden by XENSQL_ environment variables)
+
+# -- Service -------------------------------------------------------------------
+service_port: 8900
+app_env: development
+log_level: INFO
+
+# -- LLM providers -------------------------------------------------------------
+llm_primary_provider: ollama
+llm_primary_base_url: "http://localhost:11434/v1"
+llm_primary_model: "llama3.1:8b"
+llm_primary_api_key: ""
+llm_primary_timeout: 60
+
+llm_fallback_provider: litellm
+llm_fallback_base_url: "http://localhost:4000/v1"
+llm_fallback_model: gpt-4o-mini
+llm_fallback_api_key: ""
+llm_fallback_timeout: 90
+
+llm_temperature: 0.0
+llm_max_tokens: 2048
+
+# -- Neo4j (knowledge graph) ---------------------------------------------------
+# Override with XENSQL_NEO4J_URI, XENSQL_NEO4J_USER, XENSQL_NEO4J_PASSWORD env vars
+neo4j_uri: "bolt://localhost:7687"
+neo4j_user: "neo4j"
+neo4j_password: "changeme"
+
+# -- Redis (conversation context + caching) ------------------------------------
+redis_url: "redis://localhost:6379/3"
+redis_max_connections: 10
+conversation_max_turns: 10
+conversation_ttl_seconds: 1800
+
+# -- pgvector (schema embeddings) ----------------------------------------------
+# Override with XENSQL_PGVECTOR_DSN env var
+pgvector_dsn: "postgresql://xensql:changeme@localhost:5432/xensql_vectors"
+pgvector_pool_min: 2
+pgvector_pool_max: 10
+pgvector_table: schema_embeddings
+
+# -- Embedding provider --------------------------------------------------------
+embedding_provider: azure     # voyage | openai | azure
+
+embedding_voyage_api_key: ""
+embedding_voyage_model: voyage-3-large
+
+embedding_openai_api_key: ""
+embedding_openai_model: text-embedding-3-small
+
+# Override with XENSQL_EMBEDDING_AZURE_API_KEY, XENSQL_EMBEDDING_AZURE_ENDPOINT env vars
+embedding_azure_api_key: ""
+embedding_azure_endpoint: ""
+embedding_azure_deployment: text-embedding-ada-002
+embedding_azure_api_version: "2024-12-01-preview"
+
+embedding_dimensions: 1536
+
+# -- Token budget --------------------------------------------------------------
+token_budget: 4096
+
+# -- Retrieval settings --------------------------------------------------------
+retrieval_top_k: 10
+retrieval_strategies: "semantic,keyword,graph"
+retrieval_rerank_top_n: 5
+
+# -- Ambiguity detection -------------------------------------------------------
+ambiguity_threshold: 0.8
+
+# -- Confidence scoring weights ------------------------------------------------
+confidence_retrieval_weight: 0.40
+confidence_intent_weight: 0.25
+confidence_generation_weight: 0.35

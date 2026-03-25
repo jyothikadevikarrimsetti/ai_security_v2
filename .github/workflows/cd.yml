@@ -1,0 +1,103 @@
+name: CD (Continuous Deployment)
+
+on:
+  workflow_run:
+    workflows: ["CI (Continuous Integration)"]
+    # branches: [ "master", "main" ]
+    types:
+      - completed
+
+jobs:
+  cd:
+    name: Continuous Deployment (Release)
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    environment: dev
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up kubectl
+        uses: azure/setup-kubectl@v3
+        
+      - name: Configure Kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBECONFIG }}" > ~/.kube/config
+
+      - name: Prepare Kubernetes Manifests
+        env:
+          # Secrets (from GitHub Environment/Repository Secrets)
+          AIVEN_PG_PASSWORD: ${{ secrets.AIVEN_PG_PASSWORD }}
+          AZURE_AI_API_KEY: ${{ secrets.AZURE_AI_API_KEY }}
+          ENVELOPE_SIGNING_KEY: ${{ secrets.ENVELOPE_SIGNING_KEY }}
+          L1_HMAC_SECRET_KEY: ${{ secrets.L1_HMAC_SECRET_KEY }}
+          MYSQL_PASSWORD: ${{ secrets.MYSQL_PASSWORD }}
+          NEO4J_PASSWORD: ${{ secrets.NEO4J_PASSWORD }}
+          PG_AUDIT_DSN: ${{ secrets.PG_AUDIT_DSN }}
+          PG_VECTOR_DSN: ${{ secrets.PG_VECTOR_DSN }}
+          SENTINELSQL_PRIVATE_KEY: ${{ secrets.SENTINELSQL_PRIVATE_KEY }}
+          SERVICE_TOKEN_SECRET: ${{ secrets.SERVICE_TOKEN_SECRET }}
+          VAULT_TOKEN: ${{ secrets.VAULT_TOKEN }}
+          
+          # Variables (from GitHub Environment Variables)
+          AIVEN_PG_HOST: ${{ vars.AIVEN_PG_HOST }}
+          AIVEN_PG_PORT: ${{ vars.AIVEN_PG_PORT }}
+          APP_ENV: ${{ vars.APP_ENV }}
+          AZURE_AI_ENDPOINT: ${{ vars.AZURE_AI_ENDPOINT }}
+          AZURE_OPENAI_DEPLOYMENT: ${{ vars.AZURE_OPENAI_DEPLOYMENT }}
+          AZURE_OPENAI_FALLBACK_DEPLOYMENT: ${{ vars.AZURE_OPENAI_FALLBACK_DEPLOYMENT }}
+          CORS_ORIGINS: ${{ vars.CORS_ORIGINS }}
+          IDP_AUDIENCE: ${{ vars.IDP_AUDIENCE }}
+          IDP_ISSUER: ${{ vars.IDP_ISSUER }}
+          IDP_JWKS_URI: ${{ vars.IDP_JWKS_URI }}
+          MYSQL_DBNAME_HIS: ${{ vars.MYSQL_DBNAME_HIS }}
+          MYSQL_DBNAME_HR: ${{ vars.MYSQL_DBNAME_HR }}
+          MYSQL_HOST: ${{ vars.MYSQL_HOST }}
+          MYSQL_PORT: ${{ vars.MYSQL_PORT }}
+          MYSQL_SSL: ${{ vars.MYSQL_SSL }}
+          NEO4J_DATABASE: ${{ vars.NEO4J_DATABASE }}
+          NEO4J_ENCRYPTED: ${{ vars.NEO4J_ENCRYPTED }}
+          NEO4J_URI: ${{ vars.NEO4J_URI }}
+          POSTGRES_DBNAME_ANALYTICS: ${{ vars.POSTGRES_DBNAME_ANALYTICS }}
+          POSTGRES_DBNAME_FINANCIAL: ${{ vars.POSTGRES_DBNAME_FINANCIAL }}
+          POSTGRES_SSLMODE: ${{ vars.POSTGRES_SSLMODE }}
+          SENTINELSQL_PUBLIC_KEY: ${{ vars.SENTINELSQL_PUBLIC_KEY }}
+          USE_MOCK_IDP: ${{ vars.USE_MOCK_IDP }}
+          VAULT_ADDR: ${{ vars.VAULT_ADDR }}
+        run: |
+          # 1. Indent multiline keys (RSA keys) by 4 spaces so they are valid YAML when injected
+          # We use awk to prepend 4 spaces to every line
+          export SENTINELSQL_PRIVATE_KEY="$(echo "$SENTINELSQL_PRIVATE_KEY" | awk '{print "    " $0}')"
+          export SENTINELSQL_PUBLIC_KEY="$(echo "$SENTINELSQL_PUBLIC_KEY" | awk '{print "    " $0}')"
+
+          # 2. Inject Secrets into secrets.yaml using perl
+          # Perl handles completely arbitrary text (like slashes in DSNs or newlines in RSA keys) perfectly
+          SECRETS="AIVEN_PG_PASSWORD AZURE_AI_API_KEY ENVELOPE_SIGNING_KEY L1_HMAC_SECRET_KEY MYSQL_PASSWORD NEO4J_PASSWORD PG_AUDIT_DSN PG_VECTOR_DSN SENTINELSQL_PRIVATE_KEY SERVICE_TOKEN_SECRET VAULT_TOKEN"
+          for SECRET in $SECRETS; do
+            perl -pi -e "s/REPLACE_WITH_$SECRET/\$ENV{$SECRET}/g" k8s/secrets.yaml
+          done
+          
+          # 3. Inject Variables into configmap.yaml using perl
+          VARS="AIVEN_PG_HOST AIVEN_PG_PORT APP_ENV AZURE_AI_ENDPOINT AZURE_OPENAI_DEPLOYMENT AZURE_OPENAI_FALLBACK_DEPLOYMENT CORS_ORIGINS IDP_AUDIENCE IDP_ISSUER IDP_JWKS_URI MYSQL_DBNAME_HIS MYSQL_DBNAME_HR MYSQL_HOST MYSQL_PORT MYSQL_SSL NEO4J_DATABASE NEO4J_ENCRYPTED NEO4J_URI POSTGRES_DBNAME_ANALYTICS POSTGRES_DBNAME_FINANCIAL POSTGRES_SSLMODE SENTINELSQL_PUBLIC_KEY USE_MOCK_IDP VAULT_ADDR"
+          for VAR in $VARS; do
+            perl -pi -e "s/REPLACE_WITH_$VAR/\$ENV{$VAR}/g" k8s/configmap.yaml
+          done
+          
+          # 4. Replace 'latest' tag with the SHA built in CI across ALL deployment files
+          sed -i "s|jimsonrats/\([a-zA-Z0-9-]*\):latest|jimsonrats/\1:${{ github.event.workflow_run.head_sha }}|g" k8s/*.yaml
+
+      - name: Deploy to Kubernetes
+        run: |
+          kubectl apply -f k8s/namespace.yaml || true
+          kubectl apply -f k8s/configmap.yaml
+          kubectl apply -f k8s/secrets.yaml
+          
+          # Apply everything else (Deployments, Services, etc)
+          kubectl apply -f k8s/
+          
+          # (Optional) Wait for some essential services to verify deployment
+          kubectl rollout status deployment/l1-identity -n sentinelsql
+          kubectl rollout status deployment/l2-knowledge -n sentinelsql
+          kubectl rollout status deployment/front-end -n sentinelsql

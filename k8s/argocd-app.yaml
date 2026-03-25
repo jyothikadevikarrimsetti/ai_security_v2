@@ -1,0 +1,28 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: sentinelsql-app
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/suryaprakash2642/ai_security_prj1.git'
+    path: k8s
+    targetRevision: HEAD
+    directory:
+      recurse: true
+      exclude: "secrets.template.yaml"
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: sentinelsql
+  ignoreDifferences:
+    - group: ""
+      kind: Secret
+      name: sentinelsql-secrets
+      namespace: sentinelsql
+      jsonPointers:
+        - /data
+  syncPolicy:
+    syncOptions:
+      - CreateNamespace=true
+      - RespectIgnoreDifferences=true

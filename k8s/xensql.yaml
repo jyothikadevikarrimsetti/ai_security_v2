@@ -1,0 +1,76 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: xensql
+  namespace: xensql-queryvault
+  labels:
+    app: xensql
+    product: xensql
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: xensql
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
+  template:
+    metadata:
+      labels:
+        app: xensql
+        product: xensql
+    spec:
+      containers:
+        - name: xensql
+          image: xensql:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 8900
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: shared-config
+            - secretRef:
+                name: db-secrets
+                optional: true
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8900
+            initialDelaySeconds: 15
+            periodSeconds: 20
+            timeoutSeconds: 5
+            failureThreshold: 3
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 8900
+            initialDelaySeconds: 10
+            periodSeconds: 10
+            timeoutSeconds: 5
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "512Mi"
+            limits:
+              cpu: "1000m"
+              memory: "1Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: xensql
+  namespace: xensql-queryvault
+  labels:
+    app: xensql
+spec:
+  type: ClusterIP
+  selector:
+    app: xensql
+  ports:
+    - protocol: TCP
+      port: 8900
+      targetPort: 8900

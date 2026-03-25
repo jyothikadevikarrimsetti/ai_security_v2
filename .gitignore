@@ -1,0 +1,117 @@
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+htmlcov/
+.nox/
+.tox/
+.poetry/
+.venv
+venv/
+venv.bak/
+ENV/
+
+# Node / React
+node_modules/
+npm-debug.log
+yarn-error.log
+yarn-debug.log
+.pnp
+.pnp.js
+coverage/
+build/
+dist/
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Local deployment folder — contains real cluster credentials, never commit
+local_dep/
+
+# Private keys
+*.pem
+*_private.pem
+*_private_key*
+*.key
+*.p12
+*.pfx
+
+# IDEs and Editors
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.project
+.settings/
+
+# Terraform / Pulumi / IaC state (if ever used)
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Testing / CI
+.coverage
+coverage.xml
+nosetests.xml
+test-results/
+.claude
+
+# Logs
+logs/
+*.log
+
+# Temp files
+tmp/
+temp/
+.service_pids
+localdeps
+
+Audit-Anomaly-Detection-Layer-Specification - Copy.docx
+Audit-Anomaly-Detection-Layer-Specification.docx
+DEMO_SCRIPT.md
+MANUAL_TEST_GUIDE - Copy.md
+app.yaml
+build_and_run_local.ps1
+l4-policy-resolution/app/api/routes/admin.py
+l4-policy-resolution/tests/test_btg_protocol.py
+l4-policy-resolution/tests/test_envelope_metadata.py
+live_integration_test.sh
+pods.txt
+setup_retrieval.py
+test_30_queries.py
+test_demo_queries.py
+check_embeddings.py
+check_encounter_embed.py
+check_schema_cols.py
+check_vector_dims.py

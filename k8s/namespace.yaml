@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: xensql-queryvault
+  labels:
+    name: xensql-queryvault
+    product-suite: ai-security

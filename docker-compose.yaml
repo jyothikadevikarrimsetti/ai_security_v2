@@ -1,0 +1,48 @@
+version: "3.9"
+
+services:
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  xensql:
+    image: jyothika2832/ai_security_v2-xensql:latest
+    ports:
+      - "8001:8000"
+    environment:
+      XENSQL_REDIS_URL: redis://redis:6379/0
+      XENSQL_NEO4J_URI: ${NEO4J_URI}
+      XENSQL_NEO4J_USER: ${NEO4J_USER}
+      XENSQL_NEO4J_PASSWORD: ${NEO4J_PASSWORD}
+      XENSQL_NEO4J_DATABASE: ${NEO4J_DATABASE}
+    depends_on:
+      - redis
+    restart: always
+
+  queryvault:
+    image: jyothika2832/ai_security_v2-queryvault:latest
+    ports:
+      - "8002:8000"
+    environment:
+      QV_XENSQL_BASE_URL: http://xensql:8000
+      QV_REDIS_URL: redis://redis:6379/1
+      QV_NEO4J_URI: ${NEO4J_URI}
+      QV_NEO4J_USER: ${NEO4J_USER}
+      QV_NEO4J_PASSWORD: ${NEO4J_PASSWORD}
+      QV_NEO4J_DATABASE: ${NEO4J_DATABASE}
+      QV_POSTGRES_DSN: ${QV_POSTGRES_DSN}
+    depends_on:
+      - redis
+      - xensql
+    restart: always
+
+  dashboard:
+    image: jyothika2832/ai_security_v2-dashboard:latest
+    ports:
+      - "3000:3000"
+    depends_on:
+      - xensql
+      - queryvault
+    restart: always

@@ -1,10 +1,14 @@
-FROM node:18
+FROM node:18 AS builder
 
 WORKDIR /app
-
-COPY . .
-
+COPY package.json package-lock.json ./
 RUN npm install
+COPY . .
 RUN npm run build
 
-CMD ["npm", "run", "preview", "--", "--host", "0.0.0.0", "--port", "3000"]
+FROM nginx:alpine
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY --from=builder /app/dist /usr/share/nginx/html
+EXPOSE 3000
+
+CMD ["nginx", "-g", "daemon off;"]

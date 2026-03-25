@@ -1,4 +1,4 @@
-name: CI/CD Pipeline
+name: Deploy to Azure VM
 
 on:
   push:
@@ -6,34 +6,29 @@ on:
       - main
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      # 🔐 Login to Docker Hub
       - name: Login to Docker Hub
         run: |
           echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-      # 🏗 Build images
-      - name: Build Docker images
+      - name: Build & Push Images
         run: |
           docker build -t ${{ secrets.DOCKER_USERNAME }}/ai_security_v2-xensql ./xensql
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/ai_security_v2-queryvault ./queryvault
-          docker build -t ${{ secrets.DOCKER_USERNAME }}/ai_security_v2-dashboard ./dashboard
-
-      # 📤 Push images
-      - name: Push Docker images
-        run: |
           docker push ${{ secrets.DOCKER_USERNAME }}/ai_security_v2-xensql
+
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/ai_security_v2-queryvault ./queryvault
           docker push ${{ secrets.DOCKER_USERNAME }}/ai_security_v2-queryvault
+
+          docker build -t ${{ secrets.DOCKER_USERNAME }}/ai_security_v2-dashboard ./dashboard
           docker push ${{ secrets.DOCKER_USERNAME }}/ai_security_v2-dashboard
 
-      # 🚀 Deploy to Azure VM
-      - name: Deploy to VM via SSH
+      - name: Deploy to VM
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.VM_HOST }}
@@ -45,6 +40,5 @@ jobs:
             docker pull ${{ secrets.DOCKER_USERNAME }}/ai_security_v2-queryvault
             docker pull ${{ secrets.DOCKER_USERNAME }}/ai_security_v2-dashboard
 
-            # Optional: you might want to stop the old containers before restarting
             docker compose down
             docker compose up -d

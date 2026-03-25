@@ -42,3 +42,9 @@ jobs:
 
             docker compose down
             docker compose up -d
+            
+            # Wait a few seconds for Neo4j and the APIs to stabilize
+            sleep 10
+            
+            # Seed the Neo4j database with Roles and initial data automatically
+            docker compose exec -T queryvault python scripts/seed_neo4j.py

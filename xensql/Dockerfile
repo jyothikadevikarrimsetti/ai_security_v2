@@ -1,9 +1,11 @@
 FROM python:3.11-slim
 
-WORKDIR /app
+WORKDIR /srv
 
-COPY . .
+COPY . /srv/xensql
 
-RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r /srv/xensql/requirements.txt
 
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+ENV PYTHONPATH=/srv
+
+CMD ["uvicorn", "xensql.app.main:app", "--host", "0.0.0.0", "--port", "8000"]

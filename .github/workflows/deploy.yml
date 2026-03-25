@@ -47,4 +47,4 @@ jobs:
             sleep 10
             
             # Seed the Neo4j database with Roles and initial data automatically
-            docker compose exec -T queryvault python scripts/seed_neo4j.py
+            docker compose exec -T queryvault python queryvault/scripts/seed_neo4j.py
